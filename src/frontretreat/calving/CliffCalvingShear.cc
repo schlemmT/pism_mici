@@ -91,7 +91,7 @@ void CliffCalvingShear::update(const array::CellType1 &cell_type,
     // have grounded ice neighbors after the mass continuity step
     if (cell_type.ice_free_ocean(i, j) and cell_type.next_to_grounded_ice(i, j)) {
       // Get the ice thickness, surface elevation, and mask in all neighboring grid cells
-      stencils::Star<double> H;
+      stencils::Star<double> H;   // TO DO: change H to type Scalar1 (array::Scalar1) then we can use the star stencil directly, but need  to change this also in the call to the calving update function!!!
       H.c = ice_thickness(i, j);
       H.e = ice_thickness(i+1, j);
       H.w = ice_thickness(i-1, j);

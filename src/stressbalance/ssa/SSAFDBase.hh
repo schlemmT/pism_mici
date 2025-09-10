@@ -46,41 +46,41 @@ public:
 protected:
   DiagnosticList diagnostics_impl() const;
 
-  void initialize_iterations(const Inputs &inputs);
+  virtual void initialize_iterations(const Inputs &inputs);
 
-  void compute_nuH(const array::Scalar1 &ice_thickness, const array::CellType2 &cell_type,
+  virtual void compute_nuH(const array::Scalar1 &ice_thickness, const array::CellType2 &cell_type,
                    const pism::Vector2d *const *velocity, const array::Staggered &hardness,
                    double nuH_regularization, array::Staggered1 &result);
 
-  void compute_nuH_everywhere(const array::Scalar1 &ice_thickness,
+  virtual void compute_nuH_everywhere(const array::Scalar1 &ice_thickness,
                               const pism::Vector2d *const *velocity,
                               const array::Staggered &hardness, double nuH_regularization,
                               array::Staggered &result);
 
-  void compute_nuH_cfbc(const array::Scalar1 &ice_thickness,
+  virtual void compute_nuH_cfbc(const array::Scalar1 &ice_thickness,
                         const array::CellType2 &cell_type,
                         const pism::Vector2d* const* velocity,
                         const array::Staggered &hardness, double nuH_regularization,
                         array::Staggered &result);
 
-  void compute_driving_stress(const array::Scalar &ice_thickness,
+  virtual void compute_driving_stress(const array::Scalar &ice_thickness,
                               const array::Scalar1 &surface_elevation,
                               const array::CellType1 &cell_type,
                               const array::Scalar1 *no_model_mask, const EnthalpyConverter &EC,
                               array::Vector &result) const;
 
-  void adjust_driving_stress(const array::Scalar &ice_thickness,
+  virtual void adjust_driving_stress(const array::Scalar &ice_thickness,
                              const array::Scalar1 &surface_elevation,
                              const array::CellType1 &cell_type, const array::Scalar1 *no_model_mask,
                              array::Vector &driving_stress) const;
 
-  void compute_average_ice_hardness(const array::Scalar1 &thickness, const array::Array3D &enthalpy,
+  virtual void compute_average_ice_hardness(const array::Scalar1 &thickness, const array::Array3D &enthalpy,
                                     const array::CellType1 &cell_type, array::Staggered &result) const;
 
-  void assemble_rhs(const Inputs &inputs, const array::CellType1 &cell_type,
+  virtual void assemble_rhs(const Inputs &inputs, const array::CellType1 &cell_type,
                     const array::Vector &driving_stress, double bc_scaling, array::Vector &result) const;
 
-  void fd_operator(const Geometry &geometry, const array::Scalar *bc_mask, double bc_scaling,
+  virtual void fd_operator(const Geometry &geometry, const array::Scalar *bc_mask, double bc_scaling,
                    const array::Scalar &basal_yield_stress,
                    IceBasalResistancePlasticLaw *basal_sliding_law,
                    const pism::Vector2d *const *velocity, const array::Staggered1 &nuH,

@@ -10,4 +10,7 @@ add_library (flowlaws OBJECT
   PatersonBuddCold.cc
   PatersonBuddWarm.cc
   grain_size_vostok.cc
+  melange/MelangeLocal.cc
+  melange/MelangeGranularFluidity.cc
+  melange/MelangeRheologyFactory.cc
   )

@@ -1666,6 +1666,65 @@ netcdf pism_config {
     pism_config:isochrones.max_n_layers_type = "integer";
     pism_config:isochrones.max_n_layers_units = "count";
 
+    pism_config:melange.grain_size = 25;
+    pism_config:melange.grain_size_doc = "melange grain size (may have values between [5,100] :cite:`Amundson2018`).";
+    pism_config:melange.grain_size_option = "melange_grain_size";
+    pism_config:melange.grain_size_type = "number";
+    pism_config:melange.grain_size_units = "m";
+
+    pism_config:melange.packing_density = 1.0;
+    pism_config:melange.packing_density_doc = "melange packing density (dimensionless; range 0.64..1 :cite:`Meng2025`)";
+    pism_config:melange.packing_density_option = "melange_packing_density";
+    pism_config:melange.packing_density_type = "number";
+    pism_config:melange.packing_density_units = "1";
+
+    pism_config:melange.methods = "";
+    pism_config:melange.methods_doc = "choose a melange rheology: ``local``, ``granular_fluidity``";
+    pism_config:melange.methods_option = "melange";
+    pism_config:melange.methods_type = "string";
+
+    pism_config:melange.local_rheology.inertial_number = 0.4e4;
+    pism_config:melange.local_rheology.inertial_number_doc = "Inertial number `I_0` (dimensionless; range 1e4..5e4); see :cite:`Amundson2018`.";
+    pism_config:melange.local_rheology.inertial_number_option = "melange_rheology_inertial_number";
+    pism_config:melange.local_rheology.inertial_number_type = "number";
+    pism_config:melange.local_rheology.inertial_number_units = "1";
+
+    pism_config:melange.local_rheology.mu_s = 0.2;
+    pism_config:melange.local_rheology.mu_s_doc = "Effective friction at low strain rates `\mu_s`; see :cite:`Amundson2018`.";
+    pism_config:melange.local_rheology.mu_s_option = "melange_local_rheology_mu_s";
+    pism_config:melange.local_rheology.mu_s_type = "number";
+    pism_config:melange.local_rheology.mu_s_units = "1";
+
+    pism_config:melange.local_rheology.mu_0 = 0.4;
+    pism_config:melange.local_rheology.mu_0_doc = "Effective friction at the yield stress `\mu_0`; see :cite:`Amundson2018`.";
+    pism_config:melange.local_rheology.mu_0_option = "melange_local_rheology_mu_0";
+    pism_config:melange.local_rheology.mu_0_type = "number";
+    pism_config:melange.local_rheology.mu_0_units = "1";
+
+    pism_config:melange.granular_fluidity.mu_s = 0.3;
+    pism_config:melange.granular_fluidity.mu_s_doc = "Static friction coefficient `\\mu_s` (dimensionless); see :cite:`Amundson2025`.";
+    pism_config:melange.granular_fluidity.mu_s_option = "melange_granular_fluidity_mu_s";
+    pism_config:melange.granular_fluidity.mu_s_type = "number";
+    pism_config:melange.granular_fluidity.mu_s_units = "1";
+
+    pism_config:melange.granular_fluidity.mu_b = 0.0;
+    pism_config:melange.granular_fluidity.mu_b_doc = "Bingham friction coefficient `\\mu_b` (dimensionless); see :cite:`Amundson2025`.";
+    pism_config:melange.granular_fluidity.mu_b_option = "melange_granular_fluidity_mu_b";
+    pism_config:melange.granular_fluidity.mu_b_type = "number";
+    pism_config:melange.granular_fluidity.mu_b_units = "1";
+
+    pism_config:melange.granular_fluidity.A = 0.5;
+    pism_config:melange.granular_fluidity.A_doc = "Cooperativity parameter `A` (dimensionless); see :cite:`Amundson2025`.";
+    pism_config:melange.granular_fluidity.A_option = "melange_granular_fluidity_A";
+    pism_config:melange.granular_fluidity.A_type = "number";
+    pism_config:melange.granular_fluidity.A_units = "1";
+
+    pism_config:melange.granular_fluidity.b = 1.0e4;
+    pism_config:melange.granular_fluidity.b_doc = "Parameter `b` (dimensionless); see :cite:`Amundson2025`.";
+    pism_config:melange.granular_fluidity.b_option = "melange_granular_fluidity_b";
+    pism_config:melange.granular_fluidity.b_type = "number";
+    pism_config:melange.granular_fluidity.b_units = "1";
+
     pism_config:ocean.anomaly.file = "";
     pism_config:ocean.anomaly.file_doc = "Name of the file containing shelf basal mass flux offset fields.";
     pism_config:ocean.anomaly.file_option = "ocean_anomaly_file";

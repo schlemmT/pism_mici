@@ -40,7 +40,6 @@ static inline double secondInvariant_2D(const Vector2d &U_x, const Vector2d &U_y
 }
 
 
-namespace rheology {
 namespace melange {
 
 //TO DO: make this implement the common MelangeRheology interface once defined
@@ -53,7 +52,6 @@ public:
 };
 
 } // namespace melange
-} // namespace rheology
 } // namespace pism
 
 #endif // PISM_RHEOLOGY_MELANGE_LOCAL_HH

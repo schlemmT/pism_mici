@@ -2,7 +2,7 @@
 
 //TO DO: implement selection based on configuration
 
-#include "pism/rheology/melange/MelangeRheologyFactory.hh"
+#include "pism/melange/rheology/MelangeRheologyFactory.hh"
 
 // Forward includes for concrete types once available
 // #include "pism/rheology/melange/MelangeRheology.hh"
@@ -10,7 +10,6 @@
 // #include "pism/rheology/melange/GranularFluidity.hh"
 
 namespace pism {
-namespace rheology {
 namespace melange {
 
 class MelangeRheology; // forward declaration (remove when real header exists)
@@ -24,7 +23,6 @@ MelangeRheologyFactory::create(std::shared_ptr<const Grid> grid,
 }
 
 } // namespace melange
-} // namespace rheology
 } // namespace pism
 
 

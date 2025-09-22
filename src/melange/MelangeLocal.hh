@@ -20,8 +20,8 @@
 #define _MELANGELOCAL_H_
 
 #include "pism/melange/Melange.hh"
-#include "pism/stressbalance/ssa/SSAFDMelange.hh"
-#include "pism/rheology/melange/MelangeRheologyFactory.hh"
+#include "pism/melange/ssa/SSAFDMelange.hh"
+#include "pism/melange/rheology/MelangeRheologyFactory.hh"
 
 namespace pism {
 
@@ -66,7 +66,7 @@ private:
   
   //! Wraps your existing components
   std::shared_ptr<stressbalance::SSAFDMelange> m_ssa_solver;
-  std::shared_ptr<rheology::melange::MelangeRheology> m_rheology;
+  std::shared_ptr<melange::MelangeRheology> m_rheology;
   
   //! Configuration
   bool m_use_ssa_solver;

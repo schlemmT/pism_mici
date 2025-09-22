@@ -21,6 +21,8 @@
 #include "pism/util/io/File.hh"
 #include "pism/util/array/CellType.hh"
 #include "pism/geometry/Geometry.hh"
+#include "pism/util/MaxTimestep.hh"
+#include "pism/stressbalance/StressBalance.hh"
 
 namespace pism {
 namespace melange {
@@ -32,11 +34,11 @@ MelangeLocal::MelangeLocal(std::shared_ptr<const Grid> g)
     m_melange_velocity_old(g, "melange_velocity_old") {
 
   // Configuration - similar to NullTransport's m_diffuse_tillwat, etc.
-  m_use_ssa_solver = m_config->get_flag("melange.use_ssa_solver", true);
-  m_use_rheology = m_config->get_flag("melange.use_rheology", true);
+  m_use_ssa_solver = m_config->get_flag("melange.use_ssa_solver");
+  m_use_rheology = m_config->get_flag("melange.use_rheology");
   // Density is now a constant from constants.sea_water.density
-  m_formation_rate_factor = m_config->get_number("melange.formation_rate_factor", 1.0);
-  m_disintegration_rate_factor = m_config->get_number("melange.disintegration_rate_factor", 1.0);
+  m_formation_rate_factor = m_config->get_number("melange.formation_rate_factor", "1");
+  m_disintegration_rate_factor = m_config->get_number("melange.disintegration_rate_factor", "1");
 
   // Initialize wrapped components
   if (m_use_ssa_solver) {
@@ -44,7 +46,7 @@ MelangeLocal::MelangeLocal(std::shared_ptr<const Grid> g)
   }
   
   if (m_use_rheology) {
-    m_rheology = rheology::melange::MelangeRheologyFactory::create(g, m_config);
+    m_rheology = melange::MelangeRheologyFactory::create(g, m_config);
   }
 
   // Initialize old state
@@ -108,7 +110,7 @@ MaxTimestep MelangeLocal::max_timestep_impl(double t) const {
   
   if (m_use_ssa_solver) {
     // SSA solver might restrict timestep
-    double dt_ssa = m_config->get_number("stress_balance.ssa.max_timestep", dt_max);
+    double dt_ssa = m_config->get_number("stress_balance.ssa.max_timestep");
     dt_max = std::min(dt_max, dt_ssa);
   }
   
@@ -152,20 +154,24 @@ void MelangeLocal::update_melange_formation(const Inputs& inputs, double dt) {
   // Simple formation model: calving rate -> melange thickness
   if (inputs.calving_rate) {
     // Only calving contributes to melange formation (not frontal melt)
-    array::Scalar formation_rate(*inputs.calving_rate);
+    // Create temporary array and copy data
+    array::Scalar formation_rate(m_grid, "formation_rate_temp");
+    formation_rate.copy_from(*inputs.calving_rate);
     formation_rate.scale(m_formation_rate_factor);
-    m_melange_thickness.add(formation_rate, dt);
+    m_melange_thickness.add(dt, formation_rate);
     
     // Track mass change (positive for formation)
-    m_melange_mass_change.add(formation_rate, 1.0);
+    m_melange_mass_change.add(1.0, formation_rate);
   } else if (inputs.retreat_rate) {
     // Fallback: use retreat rate if calving rate not available
-    array::Scalar formation_rate(*inputs.retreat_rate);
+    // Create temporary array and copy data
+    array::Scalar formation_rate(m_grid, "formation_rate_temp");
+    formation_rate.copy_from(*inputs.retreat_rate);
     formation_rate.scale(m_formation_rate_factor);
-    m_melange_thickness.add(formation_rate, dt);
+    m_melange_thickness.add(dt, formation_rate);
     
     // Track mass change (positive for formation)
-    m_melange_mass_change.add(formation_rate, 1.0);
+    m_melange_mass_change.add(1.0, formation_rate);
   }
 }
 
@@ -175,14 +181,8 @@ void MelangeLocal::update_melange_flow(const Inputs& inputs, double dt) {
     return;
   }
   
-  // Set up SSA solver inputs
-  stressbalance::Inputs ssa_inputs;
-  ssa_inputs.geometry = inputs.geometry;
-  ssa_inputs.basal_yield_stress = nullptr;  // No basal sliding for melange
-  ssa_inputs.basal_sliding_law = nullptr;
-  
-  // Solve for melange velocity
-  solve_melange_flow(ssa_inputs);
+  // Solve for melange velocity using melange inputs
+  solve_melange_flow(inputs);
   
   // Update melange velocity
   // (This would copy from SSA solver output)
@@ -194,21 +194,25 @@ void MelangeLocal::update_melange_disintegration(const Inputs& inputs, double dt
   // Simple disintegration model: frontal melt -> melange loss
   if (inputs.frontal_melt_rate) {
     // Only frontal melt contributes to melange disintegration (not calving)
-    array::Scalar disintegration_rate(*inputs.frontal_melt_rate);
+    // Create temporary array and copy data
+    array::Scalar disintegration_rate(m_grid, "disintegration_rate_temp");
+    disintegration_rate.copy_from(*inputs.frontal_melt_rate);
     disintegration_rate.scale(m_disintegration_rate_factor);
-    m_melange_thickness.add(disintegration_rate, -dt);
+    m_melange_thickness.add(-dt, disintegration_rate);
     
     // Track mass change (negative for disintegration)
-    m_melange_mass_change.add(disintegration_rate, -1.0);
+    m_melange_mass_change.add(-1.0, disintegration_rate);
   } else if (inputs.retreat_rate and inputs.calving_rate) {
     // Fallback: compute from retreat rate - calving rate if both available
-    array::Scalar disintegration_rate(*inputs.retreat_rate);
+    // Create temporary array and copy data
+    array::Scalar disintegration_rate(m_grid, "disintegration_rate_temp");
+    disintegration_rate.copy_from(*inputs.retreat_rate);
     disintegration_rate.add(-1.0, *inputs.calving_rate);
     disintegration_rate.scale(m_disintegration_rate_factor);
-    m_melange_thickness.add(disintegration_rate, -dt);
+    m_melange_thickness.add(-dt, disintegration_rate);
     
     // Track mass change (negative for disintegration)
-    m_melange_mass_change.add(disintegration_rate, -1.0);
+    m_melange_mass_change.add(-1.0, disintegration_rate);
   }
 }
 
@@ -227,13 +231,20 @@ void MelangeLocal::update_melange_state(const Inputs& inputs, double dt) {
 }
 
 //! Solve melange flow using SSA solver
-void MelangeLocal::solve_melange_flow(const stressbalance::Inputs& inputs) {
+void MelangeLocal::solve_melange_flow(const Inputs& inputs) {
   if (not m_ssa_solver) {
     return;
   }
   
+  // Convert melange inputs to SSA solver inputs
+  stressbalance::Inputs ssa_inputs;
+  ssa_inputs.geometry = inputs.geometry;
+  ssa_inputs.basal_yield_stress = nullptr;  // No basal sliding for melange
+  ssa_inputs.basal_melt_rate = inputs.basal_melt_rate;
+  ssa_inputs.water_column_pressure = inputs.water_column_pressure;
+  
   // This is where we would call the SSA solver
-  // m_ssa_solver->solve(inputs);
+  // m_ssa_solver->solve(ssa_inputs);
   
   // For now, just set velocity to zero
   m_melange_velocity.set(0.0);

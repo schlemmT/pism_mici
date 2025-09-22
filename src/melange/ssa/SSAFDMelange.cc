@@ -1,4 +1,9 @@
-#include "pism/stressbalance/ssa/SSAFDMelange.hh"
+#include "pism/melange/ssa/SSAFDMelange.hh"
+#include <cassert>
+#include <stdexcept>
+#include "pism/util/petscwrappers/Viewer.hh"
+#include "pism/util/petscwrappers/DM.hh"
+#include "pism/util/petscwrappers/Vec.hh"
 
 using namespace pism;
 using namespace pism::stressbalance;

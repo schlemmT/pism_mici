@@ -73,6 +73,9 @@ public:
   
   //! combined retreat rate [m/s] - calving_rate + frontal_melt_rate
   const array::Scalar        *retreat_rate;
+  
+  //! water column pressure [Pa] - from ocean model
+  const array::Scalar        *water_column_pressure;
 };
 
 //! \brief The PISM melange model interface.

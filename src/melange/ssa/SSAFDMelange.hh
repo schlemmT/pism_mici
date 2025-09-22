@@ -20,18 +20,14 @@
 #define _SSAFDMelange_H_
 
 #include <array>
-#include <cassert>
 #include <memory>
-#include <stdexcept>
 
 #include "pism/stressbalance/ssa/SSAFDBase.hh"
 #include "pism/util/error_handling.hh"
-#include "pism/util/petscwrappers/Viewer.hh"
 #include "pism/util/petscwrappers/KSP.hh"
 #include "pism/util/petscwrappers/Mat.hh"
-#include "pism/util/petscwrappers/DM.hh"
-#include "pism/util/petscwrappers/Vec.hh"
 #include "pism/util/array/Staggered.hh"
+
 
 namespace pism {
 namespace stressbalance {

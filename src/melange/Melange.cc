@@ -39,6 +39,7 @@ Inputs::Inputs() {
   calving_rate = nullptr;
   frontal_melt_rate = nullptr;
   retreat_rate = nullptr;
+  water_column_pressure = nullptr;
 }
 
 //! Melange constructor

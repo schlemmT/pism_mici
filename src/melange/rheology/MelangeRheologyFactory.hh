@@ -11,7 +11,6 @@ namespace pism {
 class Grid; // forward declaration
 class Config; // forward declaration
 
-namespace rheology {
 namespace melange {
 
 class MelangeRheology; // forward declaration of the common interface
@@ -25,7 +24,6 @@ public:
 };
 
 } // namespace melange
-} // namespace rheology
 } // namespace pism
 
 #endif // PISM_RHEOLOGY_MELANGE_FACTORY_HH

@@ -314,6 +314,35 @@ void IceModel::model_state_setup() {
     m_stress_balance->init();
   }
 
+  // Initialize melange model if enabled
+  if (m_melange) {
+    switch (input.type) {
+    case INIT_RESTART:
+      m_melange->restart(*input_file, input.record);
+      break;
+    case INIT_BOOTSTRAP:
+      m_melange->bootstrap(*input_file);
+      break;
+    case INIT_OTHER:
+    default:
+      {
+        // Initialize with zero melange thickness and velocity
+        array::Scalar &melange_thickness = *m_work2d[0];
+        array::Vector melange_velocity(m_grid, "melange_velocity_temp");
+        
+        melange_thickness.set(0.0);
+        melange_velocity.set(0.0);
+        
+        m_melange->init(melange_thickness, melange_velocity);
+        break;
+      }
+    }
+    
+    // Add melange variables to grid variables system
+    m_grid->variables().add(m_melange->melange_thickness());
+    m_grid->variables().add(m_melange->melange_velocity());
+  }
+
   // we keep ice thickness fixed at all the locations where the sliding (SSA) velocity is
   // prescribed
   {

@@ -1060,4 +1060,8 @@ void IceModel::set_python_ocean_model(std::shared_ptr<ocean::PyOceanModel> model
   m_submodels["ocean model"] = m_ocean.get();
 }
 
+const melange::Melange* IceModel::melange_model() const {
+  return m_melange.get();
+}
+
 } // end of namespace pism

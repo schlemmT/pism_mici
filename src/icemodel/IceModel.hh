@@ -159,6 +159,7 @@ public:
   const energy::EnergyModel* energy_balance_model() const;
   const YieldStress* basal_yield_stress_model() const;
   const bed::BedDef* bed_deformation_model() const;
+  const melange::Melange* melange_model() const;
 
   /*!
    * Replace the ocean model with an implementation in Python.

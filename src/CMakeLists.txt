@@ -96,6 +96,7 @@ add_library (libpism
   $<TARGET_OBJECTS:regional>
   $<TARGET_OBJECTS:calcalcs>
   $<TARGET_OBJECTS:cubature>
+  $<TARGET_OBJECTS:melange>
 )
 
 set_target_properties(libpism PROPERTIES

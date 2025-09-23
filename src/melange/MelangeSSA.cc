@@ -16,7 +16,7 @@
 // along with PISM; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-#include "pism/melange/MelangeLocal.hh"
+#include "pism/melange/MelangeSSA.hh"
 #include "pism/util/error_handling.hh"
 #include "pism/util/io/File.hh"
 #include "pism/util/array/CellType.hh"
@@ -28,7 +28,7 @@ namespace pism {
 namespace melange {
 
 //! Constructor - similar to NullTransport constructor
-MelangeLocal::MelangeLocal(std::shared_ptr<const Grid> g)
+MelangeSSA::MelangeSSA(std::shared_ptr<const Grid> g)
   : Melange(g),
     m_melange_thickness_old(g, "melange_thickness_old"),
     m_melange_velocity_old(g, "melange_velocity_old") {
@@ -55,11 +55,16 @@ MelangeLocal::MelangeLocal(std::shared_ptr<const Grid> g)
 }
 
 //! Restart implementation - similar to NullTransport::restart_impl()
-void MelangeLocal::restart_impl(const File &input_file, int record) {
+void MelangeSSA::restart_impl(const File &input_file, int record) {
   // Read melange state from file
   m_melange_thickness.read(input_file, record);
-  m_melange_pressure.read(input_file, record);
   m_melange_velocity.read(input_file, record);
+  
+  // Note: Pressure should be computed from thickness, not read from file
+  // This requires geometry which is not available in restart_impl
+  // The calling code should handle pressure computation after restart
+  m_hydrostatic_pressure.set(0.0);
+  m_granular_pressure.set(0.0);
   
   // Initialize old state
   m_melange_thickness_old.copy_from(m_melange_thickness);
@@ -78,13 +83,13 @@ void MelangeLocal::restart_impl(const File &input_file, int record) {
 }
 
 //! Bootstrap implementation - similar to NullTransport::bootstrap_impl()
-void MelangeLocal::bootstrap_impl(const File &input_file, const array::Scalar &ice_thickness) {
-  // Initialize melange state from ice thickness
+void MelangeSSA::bootstrap_impl(const File &input_file) {
+  // Initialize melange state from geometry
   m_melange_thickness.set(0.0);  // Start with no melange
-  
-  // Initialize pressure
-  m_melange_pressure.set(0.0);
   m_melange_velocity.set(0.0);
+  
+  // Compute pressure from thickness (hydrostatic pressure)
+  compute_hydrostatic_pressure(m_melange_thickness);
   
   // Initialize old state
   m_melange_thickness_old.copy_from(m_melange_thickness);
@@ -92,11 +97,14 @@ void MelangeLocal::bootstrap_impl(const File &input_file, const array::Scalar &i
 }
 
 //! Init implementation - similar to NullTransport::init_impl()
-void MelangeLocal::init_impl(const array::Scalar &melange_thickness,
-                             const array::Scalar &melange_pressure) {
+void MelangeSSA::init_impl(const array::Scalar &melange_thickness,
+                           const array::Vector &melange_velocity) {
   // Copy initial state
   m_melange_thickness.copy_from(melange_thickness);
-  m_melange_pressure.copy_from(melange_pressure);
+  m_melange_velocity.copy_from(melange_velocity);
+  
+  // Compute pressure from thickness (hydrostatic pressure)
+  compute_hydrostatic_pressure(m_melange_thickness);
   
   // Initialize old state
   m_melange_thickness_old.copy_from(m_melange_thickness);
@@ -104,7 +112,7 @@ void MelangeLocal::init_impl(const array::Scalar &melange_thickness,
 }
 
 //! Max timestep - similar to NullTransport::max_timestep_impl()
-MaxTimestep MelangeLocal::max_timestep_impl(double t) const {
+MaxTimestep MelangeSSA::max_timestep_impl(double t) const {
   // Melange physics might need smaller timesteps
   double dt_max = m_config->get_number("time_stepping.maximum_time_step");
   
@@ -118,7 +126,7 @@ MaxTimestep MelangeLocal::max_timestep_impl(double t) const {
 }
 
 //! Update implementation - similar to NullTransport::update_impl()
-void MelangeLocal::update_impl(double t, double dt, const Inputs& inputs) {
+void MelangeSSA::update_impl(double t, double dt, const Inputs& inputs) {
   // Store old state
   m_melange_thickness_old.copy_from(m_melange_thickness);
   m_melange_velocity_old.copy_from(m_melange_velocity);
@@ -144,13 +152,13 @@ void MelangeLocal::update_impl(double t, double dt, const Inputs& inputs) {
   // Compute back pressure
   if (inputs.water_column_pressure) {
     compute_back_pressure(m_melange_thickness, 
-                         *inputs.ice_thickness, *inputs.water_column_pressure, 
+                         *inputs.geometry, *inputs.water_column_pressure, 
                          m_melange_back_pressure);
   }
 }
 
 //! Update melange formation - similar to NullTransport::diffuse_till_water()
-void MelangeLocal::update_melange_formation(const Inputs& inputs, double dt) {
+void MelangeSSA::update_melange_formation(const Inputs& inputs, double dt) {
   // Simple formation model: calving rate -> melange thickness
   if (inputs.calving_rate) {
     // Only calving contributes to melange formation (not frontal melt)
@@ -162,21 +170,11 @@ void MelangeLocal::update_melange_formation(const Inputs& inputs, double dt) {
     
     // Track mass change (positive for formation)
     m_melange_mass_change.add(1.0, formation_rate);
-  } else if (inputs.retreat_rate) {
-    // Fallback: use retreat rate if calving rate not available
-    // Create temporary array and copy data
-    array::Scalar formation_rate(m_grid, "formation_rate_temp");
-    formation_rate.copy_from(*inputs.retreat_rate);
-    formation_rate.scale(m_formation_rate_factor);
-    m_melange_thickness.add(dt, formation_rate);
-    
-    // Track mass change (positive for formation)
-    m_melange_mass_change.add(1.0, formation_rate);
   }
 }
 
 //! Update melange flow using SSA solver
-void MelangeLocal::update_melange_flow(const Inputs& inputs, double dt) {
+void MelangeSSA::update_melange_flow(const Inputs& inputs, double dt) {
   if (not m_ssa_solver) {
     return;
   }
@@ -190,7 +188,7 @@ void MelangeLocal::update_melange_flow(const Inputs& inputs, double dt) {
 }
 
 //! Update melange disintegration
-void MelangeLocal::update_melange_disintegration(const Inputs& inputs, double dt) {
+void MelangeSSA::update_melange_disintegration(const Inputs& inputs, double dt) {
   // Simple disintegration model: frontal melt -> melange loss
   if (inputs.frontal_melt_rate) {
     // Only frontal melt contributes to melange disintegration (not calving)
@@ -202,25 +200,13 @@ void MelangeLocal::update_melange_disintegration(const Inputs& inputs, double dt
     
     // Track mass change (negative for disintegration)
     m_melange_mass_change.add(-1.0, disintegration_rate);
-  } else if (inputs.retreat_rate and inputs.calving_rate) {
-    // Fallback: compute from retreat rate - calving rate if both available
-    // Create temporary array and copy data
-    array::Scalar disintegration_rate(m_grid, "disintegration_rate_temp");
-    disintegration_rate.copy_from(*inputs.retreat_rate);
-    disintegration_rate.add(-1.0, *inputs.calving_rate);
-    disintegration_rate.scale(m_disintegration_rate_factor);
-    m_melange_thickness.add(-dt, disintegration_rate);
-    
-    // Track mass change (negative for disintegration)
-    m_melange_mass_change.add(-1.0, disintegration_rate);
   }
 }
 
 //! Update melange state variables
-void MelangeLocal::update_melange_state(const Inputs& inputs, double dt) {
+void MelangeSSA::update_melange_state(const Inputs& inputs, double dt) {
   // Update pressure based on new thickness
-  compute_melange_pressure(m_melange_thickness, 
-                          *inputs.ice_thickness, m_melange_pressure);
+  compute_hydrostatic_pressure(m_melange_thickness);
   
   // Density is now a constant, no need to update
   
@@ -231,7 +217,7 @@ void MelangeLocal::update_melange_state(const Inputs& inputs, double dt) {
 }
 
 //! Solve melange flow using SSA solver
-void MelangeLocal::solve_melange_flow(const Inputs& inputs) {
+void MelangeSSA::solve_melange_flow(const Inputs& inputs) {
   if (not m_ssa_solver) {
     return;
   }
@@ -251,7 +237,7 @@ void MelangeLocal::solve_melange_flow(const Inputs& inputs) {
 }
 
 //! Update melange rheology
-void MelangeLocal::update_melange_rheology(const Inputs& inputs) {
+void MelangeSSA::update_melange_rheology(const Inputs& inputs) {
   if (not m_rheology) {
     return;
   }
@@ -261,7 +247,7 @@ void MelangeLocal::update_melange_rheology(const Inputs& inputs) {
 }
 
 //! Diagnostics implementation
-std::map<std::string, Diagnostic::Ptr> MelangeLocal::diagnostics_impl() const {
+std::map<std::string, Diagnostic::Ptr> MelangeSSA::diagnostics_impl() const {
   // Similar to Hydrology diagnostics
   std::map<std::string, Diagnostic::Ptr> result;
   
@@ -274,9 +260,9 @@ std::map<std::string, Diagnostic::Ptr> MelangeLocal::diagnostics_impl() const {
 }
 
 //! Initialization message
-void MelangeLocal::initialization_message() const {
+void MelangeSSA::initialization_message() const {
   m_log->message(2, 
-    "  Using local melange model with SSA solver: %s, Rheology: %s\n",
+    "  Using SSA-based melange model with SSA solver: %s, Rheology: %s\n",
     m_use_ssa_solver ? "yes" : "no",
     m_use_rheology ? "yes" : "no");
 }

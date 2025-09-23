@@ -72,6 +72,15 @@ namespace hydrology {
 class Hydrology;
 }
 
+namespace melange {
+class Melange;
+class MelangeRheology;
+}
+
+namespace stressbalance {
+class SSAFDMelange;
+}
+
 namespace calving {
 class EigenCalving;
 class vonMisesCalving;
@@ -170,6 +179,7 @@ protected:
   virtual void allocate_bedrock_thermal_unit();
   virtual void allocate_energy_model();
   virtual void allocate_subglacial_hydrology();
+  virtual void allocate_melange();
   virtual void allocate_basal_yield_stress();
   virtual void allocate_couplers();
   virtual void allocate_geometry_evolution();
@@ -255,6 +265,7 @@ protected:
   std::map<std::string,const Component*> m_submodels;
 
   std::unique_ptr<hydrology::Hydrology> m_subglacial_hydrology;
+  std::unique_ptr<melange::Melange> m_melange;
   std::shared_ptr<YieldStress> m_basal_yield_stress_model;
 
   std::shared_ptr<array::Forcing> m_surface_input_for_hydrology;

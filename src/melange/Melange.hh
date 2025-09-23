@@ -39,25 +39,8 @@ public:
   //! a mask array used in  regional modeling mode to define which parts of the computational domain should be excluded from certain physics calculations
   const array::Scalar1      *no_model_mask;
   
-  //! ice sheet geometry
+  //! ice sheet geometry (contains ice_thickness, ice_surface_elevation, cell_type, bed_elevation, sea_level_elevation)
   const Geometry *geometry;
-  
-  //! ice thickness [m]
-  const array::Scalar        *ice_thickness;
-  
-  //! surface elevation [m]
-  const array::Scalar        *surface_elevation;
-  
-  //! cell type mask (grounded, floating, ice-free ocean, etc.) - from geometry
-  //! Available mask values: MASK_ICE_FREE_BEDROCK, MASK_GROUNDED, MASK_FLOATING, MASK_ICE_FREE_OCEAN
-  //! Use for: identifying where melange can form (ice-free ocean), grounding line detection
-  const array::CellType      *cell_type;
-  
-  //! bed topography [m] - for determining fjord geometry
-  const array::Scalar        *bed_elevation;
-  
-  //! sea level elevation [m]
-  const array::Scalar        *sea_level;
   
   //! ice velocity [m/s]
   const array::Vector        *ice_velocity;
@@ -71,8 +54,6 @@ public:
   //! frontal melt rate [m/s] - from frontal melt model
   const array::Scalar        *frontal_melt_rate;
   
-  //! combined retreat rate [m/s] - calving_rate + frontal_melt_rate
-  const array::Scalar        *retreat_rate;
   
   //! water column pressure [Pa] - from ocean model
   const array::Scalar        *water_column_pressure;
@@ -113,20 +94,18 @@ public:
   //! Restart from a PISM output file
   void restart(const File &input_file, int record);
 
-  //! Bootstrap from a file with ice thickness and no melange state variables
-  void bootstrap(const File &input_file,
-                 const array::Scalar &ice_thickness);
+  //! Bootstrap from a file with geometry and no melange state variables
+  void bootstrap(const File &input_file);
 
   //! Initialize with given state
   void init(const array::Scalar &melange_thickness,
-            const array::Scalar &melange_pressure);
+            const array::Vector &melange_velocity);
 
   //! Update the melange state
   void update(double t, double dt, const Inputs& inputs);
 
   //! State variables
   const array::Scalar& melange_thickness() const;
-  const array::Scalar& melange_pressure() const;
   const array::Vector& melange_velocity() const;
 
   //! Essential diagnostic quantities
@@ -136,37 +115,42 @@ public:
 protected:
   //! Virtual implementations 
   virtual void restart_impl(const File &input_file, int record);
-  virtual void bootstrap_impl(const File &input_file,
-                              const array::Scalar &ice_thickness);
+  virtual void bootstrap_impl(const File &input_file);
   virtual void init_impl(const array::Scalar &melange_thickness,
-                         const array::Scalar &melange_pressure);
+                         const array::Vector &melange_velocity);
   virtual void update_impl(double t, double dt, const Inputs& inputs) = 0;
   virtual std::map<std::string, Diagnostic::Ptr> diagnostics_impl() const;
 
   virtual void define_model_state_impl(const File &output) const;
   virtual void write_model_state_impl(const File &output) const;
 
-  //! Helper methods - similar to Hydrology's compute_overburden_pressure()
-  void compute_melange_pressure(const array::Scalar &melange_thickness,
-                                const array::Scalar &ice_thickness,
-                                array::Scalar &result) const;
-
+  //! Helper methods 
+  const array::Scalar& hydrostatic_pressure() const;
+  const array::Scalar& granular_pressure() const;
+  
+  void compute_hydrostatic_pressure(const array::Scalar &melange_thickness);
+  void compute_granular_pressure(const array::Scalar &melange_thickness);
+  
   void compute_back_pressure(const array::Scalar &melange_thickness,
-                             const array::Scalar &ice_thickness,
+                             const Geometry &geometry,
                              const array::Scalar &water_column_pressure,
                              array::Scalar &result) const;
 
 protected:
-  //! State variables - similar to Hydrology's m_Wtill, m_W, etc.
+  //! State variables 
   
   //! thickness of melange layer [m]
   array::Scalar m_melange_thickness;
   
-  //! pressure in melange [Pa]
-  array::Scalar m_melange_pressure;
-  
   //! velocity of melange [m/s]
   array::Vector m_melange_velocity;
+
+  //! Helper variables for rheology and back pressure calculations
+  //! hydrostatic pressure in melange [Pa]
+  array::Scalar m_hydrostatic_pressure;
+  
+  //! granular pressure in melange [Pa]
+  array::Scalar m_granular_pressure;
 
   //! Essential diagnostic quantities
   //! rate of mass change [kg/s]

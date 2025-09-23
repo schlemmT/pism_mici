@@ -44,10 +44,9 @@ public:
 protected:
   //! Virtual implementations - all do nothing
   virtual void restart_impl(const File &input_file, int record);
-  virtual void bootstrap_impl(const File &input_file,
-                              const array::Scalar &ice_thickness);
+  virtual void bootstrap_impl(const File &input_file);
   virtual void init_impl(const array::Scalar &melange_thickness,
-                         const array::Scalar &melange_pressure);
+                         const array::Vector &melange_velocity);
   virtual MaxTimestep max_timestep_impl(double t) const;
   virtual void update_impl(double t, double dt, const Inputs& inputs);
 

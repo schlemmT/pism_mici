@@ -1666,6 +1666,16 @@ netcdf pism_config {
     pism_config:isochrones.max_n_layers_type = "integer";
     pism_config:isochrones.max_n_layers_units = "count";
 
+    pism_config:melange.enabled = "no";
+    pism_config:melange.enabled_doc = "Enable the melange model for iceberg melange dynamics.";
+    pism_config:melange.enabled_option = "melange";
+    pism_config:melange.enabled_type = "flag";
+
+    pism_config:melange.model = "null";
+    pism_config:melange.model_doc = "Choose melange model: ``null`` (no-op), ``local`` (local rheology with SSA solver)";
+    pism_config:melange.model_option = "melange_model";
+    pism_config:melange.model_type = "string";
+
     pism_config:melange.grain_size = 25;
     pism_config:melange.grain_size_doc = "melange grain size (may have values between [5,100] :cite:`Amundson2018`).";
     pism_config:melange.grain_size_option = "melange_grain_size";

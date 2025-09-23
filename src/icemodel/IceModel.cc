@@ -29,6 +29,7 @@
 #include "pism/frontretreat/util/IcebergRemover.hh"
 #include "pism/energy/BedThermalUnit.hh"
 #include "pism/hydrology/Hydrology.hh"
+#include "pism/melange/Melange.hh"
 #include "pism/stressbalance/StressBalance.hh"
 #include "pism/util/Grid.hh"
 #include "pism/util/ConfigInterface.hh"

@@ -27,8 +27,9 @@ MelangeNull::MelangeNull(std::shared_ptr<const Grid> g)
   : Melange(g) {
   // Initialize everything to zero
   m_melange_thickness.set(0.0);
-  m_melange_pressure.set(0.0);
   m_melange_velocity.set(0.0);
+  m_hydrostatic_pressure.set(0.0);
+  m_granular_pressure.set(0.0);
   m_melange_mass_change.set(0.0);
   m_melange_back_pressure.set(0.0);
 }
@@ -41,18 +42,17 @@ void MelangeNull::restart_impl(const File &input_file, int record) {
 }
 
 //! Bootstrap implementation - do nothing
-void MelangeNull::bootstrap_impl(const File &input_file, const array::Scalar &ice_thickness) {
+void MelangeNull::bootstrap_impl(const File &input_file) {
   // Null model - do nothing
   (void)input_file;
-  (void)ice_thickness;
 }
 
 //! Init implementation - do nothing
 void MelangeNull::init_impl(const array::Scalar &melange_thickness,
-                            const array::Scalar &melange_pressure) {
+                            const array::Vector &melange_velocity) {
   // Null model - do nothing
   (void)melange_thickness;
-  (void)melange_pressure;
+  (void)melange_velocity;
 }
 
 //! Max timestep - no restrictions

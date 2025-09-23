@@ -1,6 +1,6 @@
 add_library (melange OBJECT
   Melange.cc
-  MelangeLocal.cc
+  MelangeSSA.cc
   MelangeNull.cc
   ssa/SSAFDMelange.cc
   ssa/SSAFDMelangeAssembly.cc

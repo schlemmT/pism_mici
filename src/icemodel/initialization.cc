@@ -38,6 +38,8 @@
 #include "pism/hydrology/Routing.hh"
 #include "pism/hydrology/SteadyState.hh"
 #include "pism/hydrology/Distributed.hh"
+#include "pism/melange/MelangeNull.hh"
+#include "pism/melange/MelangeSSA.hh"
 #include "pism/stressbalance/StressBalance.hh"
 #include "pism/util/ConfigInterface.hh"
 #include "pism/util/Time.hh"
@@ -628,6 +630,27 @@ void IceModel::allocate_subglacial_hydrology() {
   m_submodels["subglacial hydrology"] = m_subglacial_hydrology.get();
 }
 
+//! \brief Decide which melange model to use.
+void IceModel::allocate_melange() {
+
+  using namespace pism::melange;
+
+  std::string melange_methods = m_config->get_string("melange.methods");
+
+  m_log->message(2, "# Allocating a melange model...\n");
+
+  if (melange_methods == "" or melange_methods == "null") {
+    m_melange.reset(new MelangeNull(m_grid));
+  } else if (melange_methods == "local" or melange_methods == "granular_fluidity") {
+    m_melange.reset(new MelangeSSA(m_grid));
+  } else {
+    throw RuntimeError::formatted(PISM_ERROR_LOCATION,
+                                  "unknown 'melange.methods': %s", melange_methods.c_str());
+  }
+
+  m_submodels["melange"] = m_melange.get();
+}
+
 //! \brief Decide which basal yield stress model to use.
 void IceModel::allocate_basal_yield_stress() {
 
@@ -693,6 +716,10 @@ void IceModel::allocate_submodels() {
   if (m_config->get_flag("fracture_density.enabled")) {
     m_fracture = std::make_shared<FractureDensity>(m_grid, m_stress_balance->shallow()->flow_law());
     m_submodels["fracture_density"] = m_fracture.get();
+  }
+
+  if (m_config->get_flag("melange.enabled")) {
+    allocate_melange();
   }
 }
 

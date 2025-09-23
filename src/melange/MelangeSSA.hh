@@ -16,8 +16,8 @@
 // along with PISM; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-#ifndef _MELANGELOCAL_H_
-#define _MELANGELOCAL_H_
+#ifndef _MELANGESSA_H_
+#define _MELANGESSA_H_
 
 #include "pism/melange/Melange.hh"
 #include "pism/melange/ssa/SSAFDMelange.hh"
@@ -27,34 +27,33 @@ namespace pism {
 
 namespace melange {
 
-//! \brief A melange model that uses local rheology and SSA solver.
+//! \brief SSA-based melange model using configurable rheology.
 /*!
   This is the main implementation of the melange model, similar to how
   NullTransport implements the Hydrology interface.
 
   This model:
   1. Wraps the existing SSAFDMelange solver for melange flow
-  2. Uses MelangeRheologyFactory to create appropriate rheology
+  2. Uses MelangeRheologyFactory to create appropriate rheology (local or granular_fluidity)
   3. Handles melange formation from calving
   4. Computes back pressure on ice shelf
   5. Manages melange disintegration
 
   The physics are implemented in the wrapped components:
   - SSAFDMelange: handles the stress balance and flow
-  - MelangeRheology: handles the rheological behavior
+  - MelangeRheology: handles the rheological behavior (configurable via melange.methods)
 */
-class MelangeLocal : public Melange {
+class MelangeSSA : public Melange {
 public:
-  MelangeLocal(std::shared_ptr<const Grid> g);
-  virtual ~MelangeLocal() = default;
+  MelangeSSA(std::shared_ptr<const Grid> g);
+  virtual ~MelangeSSA() = default;
 
 protected:
   //! Virtual implementations - similar to NullTransport pattern
   virtual void restart_impl(const File &input_file, int record);
-  virtual void bootstrap_impl(const File &input_file,
-                              const array::Scalar &ice_thickness);
+  virtual void bootstrap_impl(const File &input_file);
   virtual void init_impl(const array::Scalar &melange_thickness,
-                         const array::Scalar &melange_pressure);
+                         const array::Vector &melange_velocity);
   virtual MaxTimestep max_timestep_impl(double t) const;
   virtual void update_impl(double t, double dt, const Inputs& inputs);
 
@@ -94,4 +93,4 @@ private:
 } // end of namespace melange
 } // end of namespace pism
 
-#endif /* _MELANGELOCAL_H_ */
+#endif /* _MELANGESSA_H_ */

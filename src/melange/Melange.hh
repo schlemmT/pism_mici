@@ -135,6 +135,9 @@ protected:
                              const Geometry &geometry,
                              const array::Scalar &water_column_pressure,
                              array::Scalar &result) const;
+  
+  //! Calculate maximum timestep based on CFL condition for melange velocity
+  double max_timestep_cfl() const;
 
 protected:
   //! State variables 

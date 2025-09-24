@@ -110,7 +110,7 @@ void Melange::update(double t, double dt, const Inputs& inputs) {
   update_impl(t, dt, inputs);
 }
 
-//! Accessor methods - similar to Hydrology's till_water_thickness(), etc.
+//! Accessor methods 
 const array::Scalar& Melange::melange_thickness() const {
   return m_melange_thickness;
 }
@@ -175,6 +175,34 @@ void Melange::compute_back_pressure(const array::Scalar &melange_thickness,
   
   // For now, set result to zero
   result.set(0.0);
+}
+
+double Melange::max_timestep_cfl() const {
+  // Calculate CFL timestep based on melange velocity
+  // Similar to stress balance max_timestep_cfl_2d()
+  
+  const double dx = m_grid->dx();
+  const double dy = m_grid->dy();
+  
+  array::AccessScope list{&m_melange_velocity};
+  
+  double u_max = 0.0, v_max = 0.0;
+  for (auto p = m_grid->points(); p; p.next()) {
+    const int i = p.i(), j = p.j();
+    
+    const double
+      u_abs = fabs(m_melange_velocity(i, j).u),
+      v_abs = fabs(m_melange_velocity(i, j).v);
+    
+    u_max = std::max(u_max, u_abs);
+    v_max = std::max(v_max, v_abs);
+  }
+  
+  // Add safety margin
+  double alpha = 0.95;
+  double eps = 1e-6;
+  
+  return alpha * 0.5 / (u_max/dx + v_max/dy + eps);
 }
 
 //! Default implementations for virtual methods

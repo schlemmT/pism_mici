@@ -358,6 +358,7 @@ protected:
   virtual void energy_step();
 
   virtual void hydrology_step();
+  virtual void melange_step();
 
   virtual void combine_basal_melt_rate(const Geometry &geometry,
                                        const array::Scalar &shelf_base_mass_flux,

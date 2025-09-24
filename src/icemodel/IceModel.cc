@@ -54,6 +54,8 @@
 
 namespace pism {
 
+using namespace melange;
+
 IceModel::IceModel(std::shared_ptr<Grid> grid, const std::shared_ptr<Context> &context)
     : m_grid(grid),
       m_config(context->config()),
@@ -629,6 +631,13 @@ void IceModel::step(bool do_mass_continuity,
   hydrology_step();
   profiling.end("basal_hydrology");
 
+  //! \li update the melange model (if active)
+  if (m_melange) {
+    profiling.begin("melange");
+    melange_step();
+    profiling.end("melange");
+  }
+
   //! \li compute the bed deformation, which depends on current thickness, bed elevation,
   //! and sea level
   if (m_beddef) {
@@ -712,6 +721,24 @@ void IceModel::hydrology_step() {
   }
 
   m_subglacial_hydrology->update(m_time->current(), m_dt, inputs);
+}
+
+void IceModel::melange_step() {
+  if (not m_melange) {
+    return;
+  }
+
+  Inputs inputs;
+
+  inputs.no_model_mask      = nullptr;
+  inputs.geometry           = &m_geometry;
+  inputs.ice_velocity       = &m_stress_balance->advective_velocity();
+  inputs.basal_melt_rate   = &m_basal_melt_rate;
+  inputs.calving_rate       = nullptr;  // TODO: Get from calving model
+  inputs.frontal_melt_rate  = nullptr;  // TODO: Get from frontal melt model
+  inputs.water_column_pressure = nullptr;  // TODO: Get from ocean model
+
+  m_melange->update(m_time->current(), m_dt, inputs);
 }
 
 //! Virtual.  Does nothing in `IceModel`.  Derived classes can do more computation in each time step.

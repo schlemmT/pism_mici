@@ -1383,6 +1383,11 @@ netcdf pism_config {
     pism_config:hydrology.maximum_time_step_type = "number";
     pism_config:hydrology.maximum_time_step_units = "365days";
 
+    pism_config:melange.maximum_time_step = 1.0;
+    pism_config:melange.maximum_time_step_doc = "maximum allowed time step length used by melange sub-timestep loop";
+    pism_config:melange.maximum_time_step_type = "number";
+    pism_config:melange.maximum_time_step_units = "365days";
+
     pism_config:hydrology.model = "null";
     pism_config:hydrology.model_choices = "null,routing,steady,distributed";
     pism_config:hydrology.model_doc = "Basal hydrology sub-model.";

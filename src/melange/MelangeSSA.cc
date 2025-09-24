@@ -23,6 +23,7 @@
 #include "pism/geometry/Geometry.hh"
 #include "pism/util/MaxTimestep.hh"
 #include "pism/stressbalance/StressBalance.hh"
+#include "pism/util/Units.hh"
 
 namespace pism {
 namespace melange {
@@ -125,7 +126,7 @@ MaxTimestep MelangeSSA::max_timestep_impl(double t) const {
   return MaxTimestep(dt_max);
 }
 
-//! Update implementation - similar to NullTransport::update_impl()
+//! Update implementation with sub-timestep loop
 void MelangeSSA::update_impl(double t, double dt, const Inputs& inputs) {
   // Store old state
   m_melange_thickness_old.copy_from(m_melange_thickness);
@@ -134,27 +135,51 @@ void MelangeSSA::update_impl(double t, double dt, const Inputs& inputs) {
   // Reset mass change tracking
   m_melange_mass_change.set(0.0);
   
-  // Update melange physics in order:
-  // 1. Formation from calving
-  update_melange_formation(inputs, dt);
+  // Sub-timestep loop for melange dynamics
+  double ht = t, hdt = 0.0;
+  const double t_final = t + dt;
   
-  // 2. Flow using SSA solver
-  if (m_use_ssa_solver) {
-    update_melange_flow(inputs, dt);
+  unsigned int step_counter = 0;
+  for (; ht < t_final; ht += hdt) {
+    step_counter++;
+    
+    // Calculate sub-timestep size based on CFL condition
+    const double dt_cfl = max_timestep_cfl();
+    
+    // Sub-timestep cannot exceed the main ice timestep
+    hdt = std::min(t_final - ht, dt);  // Main ice timestep constraint
+    hdt = std::min(hdt, dt_cfl);       // CFL stability
+    
+    m_log->message(3, "  melange step %05d, dt = %f s\n", step_counter, hdt);
+    
+    // Update melange physics in order:
+    // 1. Formation from calving
+    update_melange_formation(inputs, hdt);
+    
+    // 2. Flow using SSA solver
+    if (m_use_ssa_solver) {
+      update_melange_flow(inputs, hdt);
+    }
+    
+    // 3. Disintegration
+    update_melange_disintegration(inputs, hdt);
+    
+    // 4. Update state variables
+    update_melange_state(inputs, hdt);
   }
   
-  // 3. Disintegration
-  update_melange_disintegration(inputs, dt);
-  
-  // 4. Update state variables
-  update_melange_state(inputs, dt);
-  
-  // Compute back pressure
+  // Compute back pressure (once at end of main timestep)
   if (inputs.water_column_pressure) {
     compute_back_pressure(m_melange_thickness, 
                          *inputs.geometry, *inputs.water_column_pressure, 
                          m_melange_back_pressure);
   }
+  
+  m_log->message(2,
+                 "  took %d melange sub-steps with average dt = %.6f years (%.6f s)\n",
+                 step_counter,
+                 units::convert(m_sys, dt/step_counter, "seconds", "years"),
+                 dt/step_counter);
 }
 
 //! Update melange formation - similar to NullTransport::diffuse_till_water()
